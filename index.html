@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Topping Transportes — Control de Viajes</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
+<script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=jApag2zWE05zgreTsipSzywVufsk5UngwkpAo_RV6giYxDHb36zHnHtDr9jN9M7RqsMR8GsY41-amNG1I28KpTh7WHcrdYzU6yg0M1Ot0-kP3Kl5yqpajpOmL5KY8qaJoKXPSJqaKTMo5CKe0k7Frqry9ZgqGgFStC2Yh7jBEqHAtz7dMEJMmJ-NP1yeVUm2nTRRp29qw-KM3JpLUbGpf3trogvdKpxPMO6c39fPmZSO0tjC_gYPQ35MPnbI-Mf-hYRaWlxqbcSvsr0VS2EPoA" charset="UTF-8"></script><style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --blue:#1A3A8F;--blue-d:#0F2560;--blue-m:#1A56DB;--blue-l:#EEF4FF;--blue-mid:#BFCFFF;
@@ -160,6 +160,13 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
 .status-bar{border-radius:var(--rsm);padding:10px 14px;font-size:13px;font-weight:500;margin-top:4px;}
 .action-row{display:flex;gap:10px;flex-wrap:wrap;}
 
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.filter-row .form-ctrl{min-width:240px;max-width:320px;}
+.login-helper{margin-top:12px;font-size:12px;line-height:1.5;color:var(--gray-600);background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--rsm);padding:10px 12px;}
+.login-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px;}
+.success-banner{display:none;background:var(--green-l);border:1px solid #A7F3D0;color:var(--green-d);border-radius:var(--rsm);padding:10px 14px;font-size:13px;font-weight:500;}
+.success-banner.show{display:block;}
+
 /* ── MOBILE ── */
 @media(max-width:600px){
   .app-body{padding:12px;}
@@ -203,6 +210,9 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
     <div id="truck-group" style="display:none;" class="form-group">
       <label class="form-label">Camion asignado</label>
       <select class="form-ctrl" id="login-truck"></select>
+    </div>
+    <div class="login-helper">
+      Selecciona el chofer para ingresar directo a <b>Registrar viaje</b>. Si eliges <b>Carlos Topping (Administrador)</b>, ingresarás a <b>Resumen choferes</b>.
     </div>
     <div class="week-badge">Semana: Jue 19 Mar 2026 — Jue 26 Mar 2026</div>
     <button class="btn btn-primary btn-full" onclick="doLogin()">Ingresar al sistema</button>
@@ -324,6 +334,7 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
 
     <!-- ── MIS VIAJES ── -->
     <div id="screen-mis-viajes" class="screen">
+      <div id="trip-success-banner" class="success-banner">✅ Viaje registrado correctamente.</div>
       <div class="topbar">
         <div>
           <div class="topbar-title">Mis viajes</div>
@@ -353,7 +364,10 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
           <div class="topbar-title">Resumen semanal</div>
           <div class="topbar-sub">Cierre Jue 26 Mar 2026 &middot; 5:00 pm</div>
         </div>
-        <button type="button" class="btn btn-ghost">Exportar</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost" onclick="resetDemo()">Reiniciar demo</button>
+          <button type="button" class="btn btn-ghost">Exportar</button>
+        </div>
       </div>
       <div class="metrics-grid">
         <div class="metric"><div class="metric-label">Choferes activos</div><div class="metric-val">4</div><div class="metric-sub">Esta semana</div></div>
@@ -362,6 +376,12 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
       </div>
       <div class="card">
         <div class="card-title">Choferes — clic para validar y aprobar pago</div>
+        <div class="filter-row">
+          <label class="form-label" for="driver-filter" style="margin-bottom:0;">Filtrar por chofer</label>
+          <select class="form-ctrl" id="driver-filter" onchange="applyDriverFilter()">
+            <option value="">Todos los choferes</option>
+          </select>
+        </div>
         <div class="tbl-wrap">
           <table class="driver-table">
             <thead>
@@ -371,8 +391,7 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
                 <th>Salario base</th>
                 <th>Imprevistos</th>
                 <th>Dinero para trabajar</th>
-                <th>Total</th>
-                <th>Progreso</th>
+                <th>Total neto despues de Rebajos</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -507,15 +526,16 @@ var imprevistos={
 // DTW = Dinero Para Trabajar (30,000 colones semanales)
 var DTW_BASE = 30000;
 
-var drivers=[
+var INITIAL_DRIVERS=[
   {name:"Juan Perez",   truck:"SJB-4821 Hino 300",  viajes:3, salario:85000,  imp:21000, gastos:5000,  adelanto:10000},
   {name:"Carlos Mora",  truck:"BJC-2210 Kenworth",   viajes:4, salario:90000,  imp:30000, gastos:8000,  adelanto:8000},
   {name:"Luis Rodriguez",truck:"CRN-5503 Isuzu",    viajes:4, salario:80000,  imp:27000, gastos:0,     adelanto:12000},
   {name:"Marco Solis",  truck:"PLA-8841 Hino 500",   viajes:3, salario:87000,  imp:19500, gastos:12000, adelanto:5000}
 ];
-
-var driverStatus=["yellow","yellow","yellow","yellow"];
-var totalImp=21000, numViajes=3, currentCliente=null, currentDriverIdx=0;
+var INITIAL_DRIVER_STATUS=["yellow","yellow","yellow","yellow"];
+var drivers=JSON.parse(JSON.stringify(INITIAL_DRIVERS));
+var driverStatus=INITIAL_DRIVER_STATUS.slice();
+var totalImp=21000, numViajes=3, currentCliente=null, currentDriverIdx=0, currentUserName="", currentDriverFilter="";
 
 function C(id){return document.getElementById(id);}
 function fmt(n){return "₡"+Math.round(n).toLocaleString("es-CR");}
@@ -526,18 +546,36 @@ function dtwDescuento(gastos){return dtwSobrante(gastos);}
 // Total a pagar = salario + imprevistos - adelanto - descuento_dtw
 function calcTotal(d){return d.salario + d.imp - d.adelanto - dtwDescuento(d.gastos);}
 
+
+function populateDriverFilter(){
+  var sel=C("driver-filter");
+  if(!sel){return;}
+  sel.innerHTML='<option value="">Todos los choferes</option>';
+  drivers.forEach(function(d){
+    var op=document.createElement("option");
+    op.value=d.name;
+    op.textContent=d.name;
+    sel.appendChild(op);
+  });
+  sel.value=currentDriverFilter;
+}
+
+function applyDriverFilter(){
+  currentDriverFilter=C("driver-filter")?C("driver-filter").value:"";
+  buildDriverTable();
+}
+
 function buildDriverTable(){
   var tbody=C("driver-tbody");
   tbody.innerHTML="";
+  populateDriverFilter();
   for(var i=0;i<drivers.length;i++){
     var d=drivers[i];
+    if(currentDriverFilter && d.name!==currentDriverFilter){continue;}
     var sobrante=dtwSobrante(d.gastos);
-    var descuento=dtwDescuento(d.gastos);
-    var pct=Math.round((d.imp/98000)*100);
     var statusMap={green:"badge-green",yellow:"badge-yellow",red:"badge-red"};
     var labelMap={green:"Listo para pago",yellow:"Pendiente revision",red:"Necesita correccion"};
     var st=driverStatus[i];
-    // DTW pill color
     var dtwClass = d.gastos===0?"dtw-ok":d.gastos>=DTW_BASE?"dtw-spent":"dtw-low";
     var dtwLabel = d.gastos===0
       ? "Sin gastos — desc. "+fmt(DTW_BASE)
@@ -554,10 +592,39 @@ function buildDriverTable(){
       +"<td class='amt amt-blue'>"+fmt(d.imp)+"</td>"
       +"<td><span class='dtw-pill "+dtwClass+"'>"+dtwLabel+"</span></td>"
       +"<td class='amt amt-green'>"+fmt(totalNeto)+"</td>"
-      +"<td><div class='bar-bg'><div class='bar-fill' style='width:"+pct+"%'></div></div></td>"
       +"<td><span class='badge "+statusMap[st]+"' id='status-"+i+"'>"+labelMap[st]+"</span></td>";
     tbody.appendChild(tr);
   }
+}
+
+function showTripSuccess(msg){
+  var el=C("trip-success-banner");
+  if(!el){return;}
+  el.textContent=msg;
+  el.classList.add("show");
+  clearTimeout(window.tripSuccessTimer);
+  window.tripSuccessTimer=setTimeout(function(){
+    el.classList.remove("show");
+  },3000);
+}
+
+function resetDemo(){
+  drivers=JSON.parse(JSON.stringify(INITIAL_DRIVERS));
+  driverStatus=INITIAL_DRIVER_STATUS.slice();
+  currentDriverFilter="";
+  totalImp=21000;
+  numViajes=3;
+  C("trip-list").innerHTML=''
+    +'<div class="trip-item"><div><div class="trip-route">Holcim Cartago &rarr; HMS (cemento)</div><div class="trip-meta"><span class="day-badge">Viernes</span>Guia: 00441 &middot; 14.2 t &middot; 80L &middot; Holcim</div></div><div class="trip-amount">&#8353;8 000</div></div>'
+    +'<div class="trip-item"><div><div class="trip-route">Agregados Guapiles &rarr; Alajuela</div><div class="trip-meta"><span class="day-badge">Sabado</span>Guia: 00448 &middot; 11.8 t &middot; 110L &middot; AG Guapiles</div></div><div class="trip-amount">&#8353;6 000</div></div>'
+    +'<div class="trip-item"><div><div class="trip-route">AMCO Rio Frio &rarr; San Juaquin</div><div class="trip-meta"><span class="day-badge">Lunes</span>Guia: 00451 &middot; 13.0 t &middot; 125L &middot; AMCO</div></div><div class="trip-amount">&#8353;7 000</div></div>';
+  C("mv-viajes").textContent=numViajes;
+  C("mv-imp").textContent=fmt(totalImp);
+  C("badge-viajes").textContent=numViajes;
+  var banner=C("trip-success-banner");
+  if(banner){banner.classList.remove("show");}
+  buildDriverTable();
+  goScreen("dueno");
 }
 
 function onChoferChange(){
@@ -575,6 +642,7 @@ function doLogin(){
   var truck=(v==="ADMIN")?"Administrador":(C("login-truck").value||"");
   var parts=(v==="ADMIN")?["C","T"]:v.split(" ");
   var initials=parts.map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();
+  currentUserName=(v==="ADMIN")?"":v;
   C("sb-avatar").textContent=initials;
   C("sb-name").textContent=(v==="ADMIN")?"Carlos Topping":v;
   C("sb-role").textContent=(v==="ADMIN")?"Administrador":"Chofer - "+truck;
@@ -588,9 +656,10 @@ function doLogout(){
   C("login-wrap").style.display="flex";
   C("app-wrap").style.display="none";
   C("login-chofer").value=""; C("truck-group").style.display="none";
-  currentCliente=null;
+  currentCliente=null; currentUserName="";
   document.querySelectorAll(".client-btn").forEach(function(b){b.classList.remove("sel");});
   C("ruta-card").style.display="none"; C("calc-box").classList.remove("show");
+  if(C("trip-success-banner")){C("trip-success-banner").classList.remove("show");}
 }
 
 function goScreen(id){
@@ -640,6 +709,7 @@ function guardarViaje(){
   if(!origen||!destino){alert("Selecciona origen y destino");return;}
   var guia=C("inp-guia").value||"---", peso=C("inp-peso").value||"---";
   var notas=C("inp-notas").value;
+  var gastoOp=Number(C("inp-gasto-op").value||0);
   var r=imprevistos[origen+"|"+destino]||{imp:0,comb:"---"};
   var lbl=currentCliente?clientes[currentCliente].label:"";
   var notaHtml=notas?"<br><span style='color:var(--gray-600);font-style:italic;'>Nota: "+notas+"</span>":"";
@@ -651,12 +721,25 @@ function guardarViaje(){
   numViajes++; totalImp+=r.imp;
   C("mv-viajes").textContent=numViajes; C("mv-imp").textContent=fmt(totalImp);
   C("badge-viajes").textContent=numViajes;
+
+  if(currentUserName){
+    var idx=drivers.findIndex(function(d){return d.name===currentUserName;});
+    if(idx>-1){
+      drivers[idx].viajes += 1;
+      drivers[idx].imp += r.imp;
+      drivers[idx].gastos += gastoOp;
+      driverStatus[idx]="yellow";
+    }
+  }
+
   C("sel-origen").value=""; C("sel-destino").innerHTML="<option>— Seleccionar origen primero —</option>";
   C("inp-guia").value=""; C("inp-peso").value=""; C("inp-notas").value=""; C("inp-gasto-op").value="";
   C("calc-box").classList.remove("show"); C("photo-thumb").style.display="none";
   document.querySelectorAll(".client-btn").forEach(function(b){b.classList.remove("sel");});
   C("ruta-card").style.display="none"; currentCliente=null;
+  buildDriverTable();
   goScreen("mis-viajes");
+  showTripSuccess("✅ Viaje registrado correctamente.");
 }
 
 function openPago(idx){
