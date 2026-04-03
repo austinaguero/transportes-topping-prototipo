@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Topping Transportes — Control de Viajes</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
+<script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=NvXOX4DcTjR_6fIVkdDZ7kjpsox7yVL1I1h02bO54CT7KGTTmyE57Pql2cE75NMEZcxy4CRiSpl5psSJ3rGtvkiaPwb-Hkg0mRMA-7jfwtzUUluFK8xufT_ExqtK8NOUjeFnp7KhokKGjgOmv-1KWNC6sbTy3YwI1Gkwx8g8QwbGdgdVEPElKIlTs7IMyxi7IMMd9DvOyr33xoyHqU68VPkgP72VFtnzlfMimH3eFOvIRgxfyLG3zB-dKmAdo-KcxhEjT5qL3CAn8rriTNECxg" charset="UTF-8"></script><style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --blue:#1A3A8F;--blue-d:#0F2560;--blue-m:#1A56DB;--blue-l:#EEF4FF;--blue-mid:#BFCFFF;
@@ -370,7 +370,7 @@ body{font-family:var(--font);background:#E8ECF4;min-height:100vh;}
                 <th>Salario base</th>
                 <th>Imprevistos</th>
                 <th>Dinero para trabajar</th>
-                <th>Progreso</th>
+                
                 <th>Estado</th>
               </tr>
             </thead>
@@ -549,8 +549,7 @@ function buildDriverTable(){
       +"<td class='amt amt-blue'>"+fmt(d.salario)+"</td>"
       +"<td class='amt amt-blue'>"+fmt(d.imp)+"</td>"
       +"<td><span class='dtw-pill "+dtwClass+"'>"+dtwLabel+"</span></td>"
-      +"<td><div class='bar-bg'><div class='bar-fill' style='width:"+pct+"%'></div></div></td>"
-      +"<td><span class='badge "+statusMap[st]+"' id='status-"+i+"'>"+labelMap[st]+"</span></td>";
+            +"<td><span class='badge "+statusMap[st]+"' id='status-"+i+"'>"+labelMap[st]+"</span></td>";
     tbody.appendChild(tr);
   }
 }
